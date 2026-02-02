@@ -1,4 +1,4 @@
-# ❄️ SuperTable: The Next-Gen Data Lake Format for Rust
+# ❄️ SuperTable
 
 SuperTable is a high-performance, **Iceberg-compatible** table format built from the ground up in Rust. It provides ACID guarantees, multi-engine interoperability, and advanced data management features designed for the modern data stack.
 
@@ -83,6 +83,7 @@ Traditional data lake formats are often siloed or lack first-class Rust support.
 
 We welcome your contributions!
 Go ahead...
+
 ---
 
 ## 📄 License

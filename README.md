@@ -81,8 +81,8 @@ Traditional data lake formats are often siloed or lack first-class Rust support.
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Integration Walkthrough](.gemini/antigravity/brain/4395cc59-784f-4943-9b35-a9290efd0ebe/walkthrough.md) for a deep dive into the current implementation details.
-
+We welcome your contributions!
+Go ahead...
 ---
 
 ## 📄 License

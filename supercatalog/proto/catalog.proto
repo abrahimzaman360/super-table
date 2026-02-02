@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package catalog;
+
+service CatalogService {
+  rpc GetTable (GetTableRequest) returns (GetTableResponse);
+  rpc CreateTable (CreateTableRequest) returns (CreateTableResponse);
+}
+
+message GetTableRequest {
+  string table_identifier = 1;
+}
+
+message GetTableResponse {
+  string table_identifier = 1;
+  // We return the location of the metadata file
+  string metadata_location = 2;
+}
+
+message CreateTableRequest {
+  string table_identifier = 1;
+  string location = 2;
+}
+
+message CreateTableResponse {
+  string table_identifier = 1;
+}

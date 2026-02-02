@@ -73,7 +73,7 @@ pub async fn main() -> anyhow::Result<()> {
         .route("/v1/namespaces/{ns}/tables/{table}", get(get_table));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
-    tracing::info!("Listening on {}", addr);
+    tracing::info!("SuperTable: Listening on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;

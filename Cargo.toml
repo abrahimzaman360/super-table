@@ -7,7 +7,6 @@ members = [
     "superbindings",
     "integrations/datafusion",
     "superrest",
-    "supernode",
     "examples/basics",
     "superaudit",
 ]

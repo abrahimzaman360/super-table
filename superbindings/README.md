@@ -1,12 +1,12 @@
 # PySuperTable
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/supertable-project/supertable/main/logo.png" alt="SuperTable Logo" width="200"/>
+  <img src="https://raw.githubusercontent.com/abrahimzaman360/supertable/main/logo.png" alt="SuperTable Logo" width="200"/>
 </p>
 
 **The Rust-native open table format for Python** 🚀
 
-PySuperTable provides Python bindings for [SuperTable](https://github.com/supertable-project/supertable), bringing blazing-fast lakehouse operations to your Python workflows.
+PySuperTable provides Python bindings for [SuperTable](https://github.com/abrahimzaman360/supertable), bringing blazing-fast lakehouse operations to your Python workflows.
 
 ## Features
 

@@ -5,7 +5,7 @@ members = [
     "supercatalog",
     "supercli",
     "superbindings",
-    "superfusion",
+    "integrations/datafusion",
     "superrest",
     "supernode",
     "examples/basics",

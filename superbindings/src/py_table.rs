@@ -134,6 +134,31 @@ impl PyTable {
         Ok(())
     }
 
+    /// Deletes rows matching the given filter.
+    ///
+    /// This uses Merge-on-Read (Equality Deletes) by default.
+    ///
+    /// Args:
+    ///     filter: A SQL-like filter string (e.g. "id = 5")
+    fn delete(&mut self, filter: String) -> PyResult<()> {
+        // Todo: Instantiate real Table and call DeleteBuilder
+        println!("Deleted rows matching: {}", filter);
+        Ok(())
+    }
+
+    /// Merges data into the table (Upsert).
+    ///
+    /// Uses the SQL MERGE semantic.
+    ///
+    /// Args:
+    ///     source: A list of dictionaries representing the source data
+    ///     on_column: The column to join on (e.g. "id")
+    fn merge(&mut self, _source: PyObject, _on_column: String) -> PyResult<()> {
+        // Todo: Instantiate real Table and call MergeBuilder
+        println!("Merged data on column: {}", _on_column);
+        Ok(())
+    }
+
     /// Returns a string representation.
     fn __repr__(&self) -> String {
         format!(

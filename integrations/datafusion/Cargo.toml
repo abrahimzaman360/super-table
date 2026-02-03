@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/supertable-project/supertable"
 
 [dependencies]
-supercore = { package = "supertable-core", version = "0.1.0", path = "../supercore" }
+supercore = { package = "supertable-core", version = "0.1.0", path = "../../supercore" }
 datafusion = "52.1.0"
 arrow = "57.2.0"
 object_store = "0.13.1"

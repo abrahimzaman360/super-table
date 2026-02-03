@@ -32,6 +32,18 @@ enum Commands {
         #[arg(short, long)]
         name: String,
     },
+    /// Generate an audit report for a table
+    Audit {
+        /// The table identifier
+        #[arg(short, long)]
+        name: String,
+        /// The format of the report (json, markdown, pdf)
+        #[arg(short, long, default_value = "markdown")]
+        format: String,
+        /// The output file path
+        #[arg(short, long)]
+        output: String,
+    },
 }
 
 #[tokio::main]
@@ -60,6 +72,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let table = response.into_inner();
             println!("Table: {}", table.table_identifier);
             println!("Metadata Location: {}", table.metadata_location);
+        }
+        Commands::Audit {
+            name,
+            format,
+            output,
+        } => {
+            println!("Auditing table '{}'...", name);
+            let request = tonic::Request::new(GetTableRequest {
+                table_identifier: name.clone(),
+            });
+            let response = client.get_table(request).await?;
+            let table = response.into_inner();
+
+            // Load metadata from the location
+            let metadata_json = std::fs::read_to_string(&table.metadata_location)?;
+            let metadata: supercore::TableMetadata = serde_json::from_str(&metadata_json)?;
+
+            let reporter = superaudit::AuditReporter::new(metadata, name);
+            match format.to_lowercase().as_str() {
+                "json" => reporter.export_json(&output)?,
+                "markdown" | "md" => reporter.export_markdown(&output)?,
+                "pdf" => reporter.export_pdf(&output)?,
+                _ => println!("Unsupported format: {}", format),
+            }
+            println!("Audit report exported to {}", output);
         }
     }
 

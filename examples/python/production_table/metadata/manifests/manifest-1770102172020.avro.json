@@ -1,0 +1,54 @@
+{
+  "entries": [
+    {
+      "status": "ADDED",
+      "data_file": {
+        "content": "DATA",
+        "file_path": "/home/ibrahimzaman/vs-code/prototypes/nanostripper/examples/python/production_table/data/data-1770102172020-9f790e2d.parquet",
+        "file_format": "PARQUET",
+        "record_count": 5,
+        "file_size_in_bytes": 2388,
+        "column_sizes": {
+          "order_id": 40,
+          "customer_id": 40,
+          "product": 33,
+          "quantity": 40,
+          "price": 40,
+          "order_date": 50
+        },
+        "value_counts": {
+          "order_id": 5,
+          "customer_id": 5,
+          "product": 5,
+          "quantity": 5,
+          "price": 5,
+          "order_date": 5
+        },
+        "null_value_counts": {
+          "order_id": 0,
+          "customer_id": 0,
+          "product": 0,
+          "quantity": 0,
+          "price": 0,
+          "order_date": 0
+        },
+        "lower_bounds": {
+          "order_id": "1001",
+          "customer_id": "101",
+          "product": "Headphones",
+          "quantity": "1",
+          "price": "149.99",
+          "order_date": "2024-01-15"
+        },
+        "upper_bounds": {
+          "order_id": "1005",
+          "customer_id": "103",
+          "product": "Tablet",
+          "quantity": "3",
+          "price": "1099.99",
+          "order_date": "2024-01-17"
+        }
+      }
+    }
+  ]
+}

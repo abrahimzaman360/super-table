@@ -1,0 +1,64 @@
+{
+  "entries": [
+    {
+      "status": "ADDED",
+      "data_file": {
+        "content": "DATA",
+        "file_path": "/home/ibrahimzaman/vs-code/prototypes/nanostripper/examples/python/production_table/data/data-1770102172241-06c3b7f1.parquet",
+        "file_format": "PARQUET",
+        "record_count": 2,
+        "file_size_in_bytes": 2995,
+        "column_sizes": {
+          "order_id": 16,
+          "customer_id": 16,
+          "product": 11,
+          "quantity": 16,
+          "price": 16,
+          "order_date": 20,
+          "discount_pct": 16,
+          "shipping_status": 14
+        },
+        "value_counts": {
+          "order_id": 2,
+          "customer_id": 2,
+          "product": 2,
+          "quantity": 2,
+          "price": 2,
+          "order_date": 2,
+          "discount_pct": 2,
+          "shipping_status": 2
+        },
+        "null_value_counts": {
+          "order_id": 0,
+          "customer_id": 0,
+          "product": 0,
+          "quantity": 0,
+          "price": 0,
+          "order_date": 0,
+          "discount_pct": 0,
+          "shipping_status": 0
+        },
+        "lower_bounds": {
+          "order_id": "1009",
+          "customer_id": "102",
+          "product": "Camera",
+          "quantity": "1",
+          "price": "799.99",
+          "order_date": "2024-01-20",
+          "discount_pct": "10.0",
+          "shipping_status": "PENDING"
+        },
+        "upper_bounds": {
+          "order_id": "1010",
+          "customer_id": "106",
+          "product": "Drone",
+          "quantity": "1",
+          "price": "1299.99",
+          "order_date": "2024-01-20",
+          "discount_pct": "15.0",
+          "shipping_status": "SHIPPED"
+        }
+      }
+    }
+  ]
+}

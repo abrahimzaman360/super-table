@@ -75,6 +75,9 @@ fn create_table(
     schema: &PySchema,
     properties: Option<HashMap<String, String>>,
 ) -> PyResult<PyTable> {
+    use std::fs;
+    use std::path::Path;
+
     let rust_schema = schema.to_rust_schema();
 
     let mut builder = supercore::TableMetadata::builder(&location, rust_schema);
@@ -84,6 +87,41 @@ fn create_table(
     }
 
     let metadata = builder.build();
+
+    // Create directory structure
+    let table_path = Path::new(&location);
+    let metadata_dir = table_path.join("metadata");
+
+    fs::create_dir_all(&metadata_dir).map_err(|e| {
+        pyo3::exceptions::PyIOError::new_err(format!("Failed to create table directory: {}", e))
+    })?;
+
+    // Write metadata as JSON
+    let metadata_json = serde_json::to_string_pretty(&metadata).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Failed to serialize metadata: {}", e))
+    })?;
+
+    let version_hint_path = metadata_dir.join("version-hint.text");
+    let metadata_file = format!("v{}.metadata.json", metadata.last_sequence_number);
+    let metadata_path = metadata_dir.join(&metadata_file);
+
+    fs::write(&metadata_path, &metadata_json).map_err(|e| {
+        pyo3::exceptions::PyIOError::new_err(format!("Failed to write metadata: {}", e))
+    })?;
+
+    fs::write(
+        &version_hint_path,
+        metadata.last_sequence_number.to_string(),
+    )
+    .map_err(|e| {
+        pyo3::exceptions::PyIOError::new_err(format!("Failed to write version hint: {}", e))
+    })?;
+
+    // Create data directory
+    let data_dir = table_path.join("data");
+    fs::create_dir_all(&data_dir).map_err(|e| {
+        pyo3::exceptions::PyIOError::new_err(format!("Failed to create data directory: {}", e))
+    })?;
 
     Ok(PyTable::new(location, metadata))
 }

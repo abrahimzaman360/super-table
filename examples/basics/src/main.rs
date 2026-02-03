@@ -85,6 +85,73 @@ async fn main() -> anyhow::Result<()> {
         new_schema.schema_id
     );
 
+    // 7. Table Metrics
+    println!("📊 Checking Table Metrics...");
+    table.refresh().await?;
+    let metrics = &table.metadata().metrics;
+    println!("   Total Records: {}", metrics.total_records);
+    println!("   Total Files:   {}", metrics.total_files);
+    println!("   Total Size:    {} bytes", metrics.total_size_bytes);
+
+    // 8. Audit Reporting
+    println!("📋 Generating Audit Reports...");
+    let reporter =
+        superaudit::AuditReporter::new(table.metadata().clone(), table.identifier().to_string());
+
+    // JSON Export
+    reporter.export_json("audit_report.json")?;
+    println!("   ✅ Audit report saved to audit_report.json");
+
+    // Markdown Export
+    reporter.export_markdown("audit_report.md")?;
+    println!("   ✅ Audit report saved to audit_report.md");
+
+    // PDF export
+    reporter.export_pdf("audit_report.pdf")?;
+    println!("   ✅ Audit report saved to audit_report.pdf");
+
+    // 9. Polars Integration
+    println!("🐻 Querying via Polars...");
+    let connector = supercore::polars::PolarsConnector::new(table.clone());
+    match connector.scan().await {
+        Ok(lf) => {
+            let df = lf.collect()?;
+            println!("   ✅ Polars DataFrame retrieved ({} rows):", df.height());
+            println!("{}", df.head(Some(5)));
+        }
+        Err(e) => {
+            println!(
+                "   ⚠️ Polars scan skipped (no manifest data in memory): {}",
+                e
+            );
+        }
+    }
+
+    // 10. CDC & Checkpointing
+    println!("🔄 Demonstrating CDC & Checkpointing...");
+    let cdc = supercore::cdc::ChangeDataCapture::new(table.clone());
+
+    // Create a checkpoint at current state
+    let checkpoint = supercore::cdc::Checkpoint {
+        last_snapshot_id: snapshot.snapshot_id,
+        last_sequence_number: table.metadata().last_sequence_number,
+    };
+
+    match cdc.save_checkpoint(&checkpoint, "sync_point").await {
+        Ok(_) => {
+            println!(
+                "   ✅ Checkpoint 'sync_point' saved at snapshot {}",
+                snapshot.snapshot_id
+            );
+        }
+        Err(e) => {
+            println!("   ⚠️ Checkpoint save skipped (in-memory storage): {}", e);
+        }
+    }
+
+    // Load and verify - only attempt if save was successful (in-memory will fail)
+    println!("   ℹ️  CDC checkpoints require persistent storage for full demo.");
+
     println!("--------------------------------------------------");
     println!("🎉 SuperTable example completed successfully!");
 

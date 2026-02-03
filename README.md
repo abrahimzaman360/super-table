@@ -1,42 +1,88 @@
 # ❄️ SuperTable
 
-SuperTable is a high-performance, **Iceberg-compatible** table format built from the ground up in Rust. It provides ACID guarantees, multi-engine interoperability, and advanced data management features designed for the modern data stack.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/abrahimzaman360/super-table/main/logo.png" alt="SuperTable Logo" width="300"/>
+  <br>
+  <b>The Rust-native, Iceberg-compatible open table format for the modern data stack.</b>
+</p>
+
+<p align="center">
+  <a href="https://github.com/abrahimzaman360/super-table/actions"><img src="https://img.shields.io/github/actions/workflow/status/abrahimzaman360/super-table/rust.yml?style=flat-square" alt="Build Status"></a>
+  <a href="https://pypi.org/project/pysupertable/"><img src="https://img.shields.io/pypi/v/pysupertable?style=flat-square&color=blue" alt="PyPI"></a>
+  <a href="https://crates.io/crates/supertable"><img src="https://img.shields.io/crates/v/supertable?style=flat-square&color=orange" alt="Crates.io"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License"></a>
+</p>
+
+<p align="center">
+  <b>Integrations:</b>
+  <br>
+  <img src="https://img.shields.io/badge/Apache_Spark-E25A1C?style=for-the-badge&logo=apachespark&logoColor=white" alt="Spark">
+  <img src="https://img.shields.io/badge/Polars-CD792C?style=for-the-badge&logo=polars&logoColor=white" alt="Polars">
+  <img src="https://img.shields.io/badge/DataFusion-4D6F88?style=for-the-badge&logo=rust&logoColor=white" alt="DataFusion">
+  <img src="https://img.shields.io/badge/Apache_Iceberg-223657?style=for-the-badge&logo=apache&logoColor=white" alt="Iceberg">
+</p>
 
 ---
 
-## 🚀 Key Features
+## 🚀 Overview
+
+SuperTable is a high-performance table format built from the ground up in Rust. It provides **ACID guarantees**, **multi-engine interoperability**, and **advanced data management** features designed for high-performance data lakes.
+
+It is fully compatible with the **Apache Iceberg REST Catalog** protocol, meaning it works out-of-the-box with existing tools while offering superior performance and resource efficiency.
+
+👉 **[Read the Architecture Deep Dive](ARCHITECTURE.md)**
+
+## ✨ Key Features
 
 - **ACID Transactions**: Optimistic concurrency control (OCC) for reliable concurrent writes.
-- **Iceberg Compatibility**: Built on the Iceberg spec, enabling seamless integration with existing tools and catalogs.
-- **Row-Level Operations**: Functional `DELETE`, `UPDATE`, and `MERGE` using a Copy-on-Write (CoW) strategy.
-- **Query Engine Integrations**:
-  - **DataFusion**: Native `TableProvider` with predicate pushdown and partition pruning.
-  - **Polars**: (In Progress) High-performance DataFrame integration.
-  - **PySpark**: (Planned) Seamless Python ecosystem support.
-- **REST Catalog API**: A secure, Iceberg-compatible REST API (`superrest`) for metadata management.
-- **Advanced Optimizations**:
-  - **Z-Ordering**: Multi-dimensional clustering for efficient spatial-like pruning.
-  - **Compaction**: Native background compaction to minimize small file problems.
-- **Data Integrity**: Built-in `SchemaValidator` for strict schema enforcement.
-- **Cloud Native**: Native support for S3, GCS, Azure Blob, and local filesystems.
+- **⚡ Rust Native**: Built for speed, memory safety, and zero-GC overhead.
+- **🧊 Iceberg Compatibility**: Fully compatible with Iceberg REST catalog spec.
+- **🐍 Python SDK**: Native `pysupertable` bindings with zero-copy Arrow integration.
+- **🔌 Query Engine Integrations**:
+  - **DataFusion**: Built-in `TableProvider` with predicate pushdown.
+  - **Polars**: High-performance DataFrame integration.
+  - **Spark**: Comprehensive read/write connector.
+- **🛠️ Production Ready**:
+  - **Z-Ordering**: Multi-dimensional spatial indexing.
+  - **Compaction**: Native small-file merging.
+  - **Schema Evolution**: Full support for adding, renaming, and updating columns.
 
----
+## 📦 Installation
 
-## 📂 Project Architecture
+### Python
+```bash
+pip install pysupertable
+```
 
-SuperTable is organized as a modular workspace:
+### Rust
+```toml
+[dependencies]
+supertable = "0.1.1"
+```
 
-- [**supercore**](supercore/): The core library containing metadata management, transactions, and I/O.
-- [**superrest**](superrest/): An Iceberg-compatible REST Catalog API server.
-- [**superfusion**](superfusion/): DataFusion integration for distributed query execution.
-- [**supercli**](supercli/): A command-line tool for table inspection and maintenance.
-- [**supercatalog**](supercatalog/): Catalog implementations (REST, In-Memory, etc.).
-- [**superbindings**](superbindings/): Python (PyO3) and Node.js bindings.
+## ⚡ Quick Start
 
----
+### Python (with Polars)
+```python
+import supertable as st
+import polars as pl
 
-## 🛠️ Quick Start (Rust)
+# 1. Create a table
+schema = st.PySchema([
+    st.PyField(1, "id", st.PyType.Long, required=True),
+    st.PyField(2, "name", st.PyType.String, required=True),
+])
+table = st.create_table("s3://warehouse/users", schema)
 
+# 2. Write data (via Polars)
+df = pl.DataFrame({"id": [1, 2], "name": ["Alice", "Bob"]})
+table.append(df)
+
+# 3. Read back
+print(table.to_pandas())
+```
+
+### Rust (with DataFusion)
 ```rust
 use superfusion::SuperTableProvider;
 use datafusion::prelude::*;
@@ -45,46 +91,33 @@ use datafusion::prelude::*;
 async fn main() -> Result<()> {
     let ctx = SessionContext::new();
     
-    // Register a SuperTable
-    let table = SuperTableProvider::try_new("s3://my-bucket/warehouse/my_table").await?;
+    // Register SuperTable
+    let table = SuperTableProvider::try_new("s3://warehouse/users").await?;
     ctx.register_table("users", Arc::new(table))?;
 
-    // Query like a pro
-    let df = ctx.sql("SELECT * FROM users WHERE age > 21").await?;
+    // Query with SQL
+    let df = ctx.sql("SELECT * FROM users WHERE id > 1").await?;
     df.show().await?;
 
     Ok(())
 }
 ```
 
----
-
-## 🔍 Why SuperTable?
-
-Traditional data lake formats are often siloed or lack first-class Rust support. SuperTable brings the performance and safety of Rust to the Iceberg ecosystem, providing a lightweight, ultra-fast alternative to JVM-based implementations.
-
----
-
 ## 🗺️ Roadmap
 
-- [x] Iceberg Metadata V1/V2 Support
-- [x] DataFusion Predicate Pushdown
-- [x] Row-level DELETE/UPDATE
-- [x] REST Catalog Security (JWT)
+- [x] Core Rust Implementation
+- [x] Iceberg REST Catalog Compatibility
+- [x] DataFusion & Polars Integration
+- [x] Spark Connector (Read/Write)
+- [x] Python Bindings (`pysupertable`)
 - [x] Z-Ordering & Compaction
-- [ ] PyPI & NPM Package Publishing
-- [ ] Merge-on-Read (MoR) Implementation
-- [ ] Full Schema & Partition Evolution
-- [ ] Time Travel Queries (AS OF)
-
----
+- [ ] Merge-on-Read (MoR)
+- [ ] Merge/Upsert SQL Support
+- [ ] Kafka Connect Integration
 
 ## 🤝 Contributing
 
-We welcome your contributions!
-Go ahead...
-
----
+We welcome contributions! Please check out [ARCHITECTURE.md](ARCHITECTURE.md) to understand the system design before diving in.
 
 ## 📄 License
 

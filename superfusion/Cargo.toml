@@ -1,0 +1,18 @@
+[package]
+name = "supertable-datafusion"
+version = "0.1.0"
+edition = "2024"
+description = "DataFusion integration for SuperTable"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/supertable-project/supertable"
+
+[dependencies]
+supercore = { package = "supertable-core", version = "0.1.0", path = "../supercore" }
+datafusion = "52.1.0"
+arrow = "57.2.0"
+object_store = "0.13.1"
+chrono = { version = "0.4.43", features = ["serde"] }
+tokio = { version = "1.49.0", features = ["rt-multi-thread"] }
+async-trait = "0.1.89"
+futures = "0.3.31"
+anyhow = "1.0.100"

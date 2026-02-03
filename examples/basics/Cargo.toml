@@ -1,0 +1,19 @@
+[package]
+name = "example-basics"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+supercore = { package = "supertable-core", path = "../../supercore" }
+tokio = { version = "1.49.0", features = ["full"] }
+anyhow = "1.0.100"
+object_store = "0.13.1"
+uuid = { version = "1.20.0", features = ["v4"] }
+superaudit = { package = "supertable-audit", path = "../../superaudit" }
+polars = { version = "0.52", features = [
+    "lazy",
+    "fmt",
+    "parquet",
+    "timezones",
+] }

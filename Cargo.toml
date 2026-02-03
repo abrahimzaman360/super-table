@@ -1,0 +1,13 @@
+[workspace]
+resolver = "3"
+members = [
+    "supercore",
+    "supercatalog",
+    "supercli",
+    "superbindings",
+    "superfusion",
+    "superrest",
+    "supernode",
+    "examples/basics",
+    "superaudit",
+]

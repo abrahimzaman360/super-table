@@ -1,0 +1,17 @@
+[package]
+name = "supertable-catalog"
+version = "0.1.0"
+edition = "2024"
+description = "Catalog server for SuperTable"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/supertable-project/supertable"
+
+[dependencies]
+prost = "0.14.3"
+supercore = { package = "supertable-core", version = "0.1.0", path = "../supercore" }
+tokio = { version = "1.49.0", features = ["full"] }
+tonic = "0.14.3"
+tonic-prost = "0.14.3"
+
+[build-dependencies]
+tonic-prost-build = "0.14.3"

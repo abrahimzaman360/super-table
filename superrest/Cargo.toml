@@ -1,0 +1,25 @@
+[package]
+name = "supertable-rest"
+version = "0.1.0"
+edition = "2024"
+description = "REST API for SuperTable catalog"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/supertable-project/supertable"
+
+[dependencies]
+axum = { version = "0.8.8", features = ["macros"] }
+supercore = { package = "supertable-core", version = "0.1.0", path = "../supercore" }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tokio = { version = "1.49.0", features = ["full"] }
+tower-http = { version = "0.6.2", features = ["cors", "auth"] }
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
+anyhow = "1.0.100"
+uuid = { version = "1.20.0", features = ["v4", "serde"] }
+jsonwebtoken = "10.3.0"
+utoipa = { version = "5", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
+
+[dev-dependencies]
+reqwest = { version = "0.12", features = ["json"] }

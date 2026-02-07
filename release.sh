@@ -2,32 +2,64 @@
 set -e
 
 # SuperTable Release Script
-# This script performs a dry-run check of all packages before publishing.
+# Usage: ./release.sh <version> [--publish]
 
-echo "--------------------------------------------------"
-echo "🚀 Starting SuperTable Release Process (Dry Run)"
-echo "--------------------------------------------------"
+VERSION=$1
+PUBLISH=$2
 
-# 1. Rust Crates Check
-echo "📦 Phase 1: Checking Rust crates..."
-cargo check
-echo "✅ Rust crates check passed."
-
-# 2. Python Bindings (Maturin)
-echo "🐍 Phase 2: Building Python wheels (dry run)..."
-cd superbindings
-if command -v maturin &> /dev/null; then
-    maturin build --release
-    echo "✅ Python build passed."
-else
-    echo "⚠️  maturin not found, skipping Python build check."
+if [ -z "$VERSION" ]; then
+    echo "Usage: ./release.sh <version> [--publish]"
+    exit 1
 fi
-cd ..
 
-# 4. Final Validation
 echo "--------------------------------------------------"
-echo "✅ All checks completed!"
-echo "Next steps:"
-echo "1. cargo publish -p supertable-core"
-echo "2. maturin publish (from superbindings)"
+echo "🚀 Preparing SuperTable Release: v$VERSION"
 echo "--------------------------------------------------"
+
+# 1. Update Rust Workspace Version
+echo "📦 Phase 1: Updating Rust workspace version..."
+# Use sed to update version in root Cargo.toml (Linux sed)
+sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+echo "✅ dependency versions updated."
+
+# 2. Update Python Version (pyproject.toml)
+echo "🐍 Phase 2: Updating Python version..."
+sed -i "s/^version = \".*\"/version = \"$VERSION\"/" superbindings/pyproject.toml
+sed -i "s/__version__ = \".*\"/__version__ = \"$VERSION\"/" superbindings/python/supertable/__init__.py
+echo "✅ Python versions updated."
+
+# 3. Verification
+echo "🔍 Phase 3: Verifying build..."
+cargo check
+cd superbindings && maturin build --release && cd ..
+echo "✅ Build verification passed."
+
+# 4. Git Tag & Publish
+if [ "$PUBLISH" == "--publish" ]; then
+    echo "📣 Phase 4: Publishing..."
+    
+    # 4a. Git Tag
+    git tag -a "v$VERSION" -m "Release v$VERSION"
+    # git push origin "v$VERSION" # User can push manually
+    echo "✅ Git tag created."
+
+    # 4b. Publish Crates
+    echo "📤 Publishing Rust crates..."
+    # Publish core first
+    cargo publish -p supertable-core
+    # Publish bindings (Maturin handles this usually, or cargo publish if pure rust)
+    # But supertable-python is cdylib, so we use maturin for PyPI
+    
+    # 4c. Publish to PyPI
+    echo "📤 Publishing to PyPI..."
+    cd superbindings
+    maturin publish
+    cd ..
+    
+    echo "🎉 Release v$VERSION published successfully!"
+else
+    echo "--------------------------------------------------"
+    echo "✅ Release preparation complete (Dry Run)."
+    echo "To publish, run: ./release.sh $VERSION --publish"
+    echo "--------------------------------------------------"
+fi

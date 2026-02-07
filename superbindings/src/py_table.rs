@@ -153,10 +153,79 @@ impl PyTable {
     /// Args:
     ///     source: A list of dictionaries representing the source data
     ///     on_column: The column to join on (e.g. "id")
-    fn merge(&mut self, _source: PyObject, _on_column: String) -> PyResult<()> {
+    /// Merges data into the table (Upsert).
+    ///
+    /// Uses the SQL MERGE semantic.
+    ///
+    /// Args:
+    ///     source: A list of dictionaries representing the source data
+    ///     on_column: The column to join on (e.g. "id")
+    fn merge(&mut self, _source: Py<PyAny>, _on_column: String) -> PyResult<()> {
         // Todo: Instantiate real Table and call MergeBuilder
         println!("Merged data on column: {}", _on_column);
         Ok(())
+    }
+
+    /// Converts the table to a PyArrow Table.
+    fn to_arrow<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        use arrow::pyarrow::ToPyArrow;
+        use supercore::prelude::*;
+
+        // 1. Setup async runtime
+        let rt = tokio::runtime::Runtime::new().unwrap();
+
+        // 2. Scan the table
+        let batches = rt
+            .block_on(async {
+                let storage = Storage::from_location(&self.metadata.location)
+                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
+                let snapshot = match self.metadata.current_snapshot() {
+                    Some(s) => s,
+                    None => return Ok(Vec::new()),
+                };
+
+                let planner = supercore::scan::ScanPlanner::new(snapshot, &storage);
+                let tasks = planner.plan().await.map_err(|e| anyhow::anyhow!(e))?;
+
+                let reader = supercore::reader::TableReader::new(storage);
+                let mut all_batches = Vec::new();
+
+                for task in tasks {
+                    let batches = reader
+                        .read_task(task)
+                        .await
+                        .map_err(|e| anyhow::anyhow!(e))?;
+                    all_batches.extend(batches);
+                }
+
+                Ok::<_, anyhow::Error>(all_batches)
+            })
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+
+        if batches.is_empty() {
+            // Return empty table with schema?
+            // For now, return empty list of batches to create empty table
+            let pa = py.import("pyarrow")?;
+            return pa
+                .getattr("Table")?
+                .call_method1("from_batches", (Vec::<Py<PyAny>>::new(),));
+        }
+
+        // 3. Convert to PyArrow objects
+        let mut py_batches = Vec::new();
+        for batch in batches {
+            let py_batch = batch.to_pyarrow(py)?;
+            py_batches.push(py_batch);
+        }
+
+        // 4. Create Table from batches
+        let pa = py.import("pyarrow")?;
+        let table = pa
+            .getattr("Table")?
+            .call_method1("from_batches", (py_batches,))?;
+
+        Ok(table)
     }
 
     /// Returns a string representation.

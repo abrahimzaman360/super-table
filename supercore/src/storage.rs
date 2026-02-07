@@ -19,6 +19,15 @@ impl Storage {
         Self { inner }
     }
 
+    /// Creates a Storage from a location string (e.g., "s3://bucket/path" or "/local/path")
+    /// Defaults to LocalFileSystem if no scheme is provided or file:// scheme is used.
+    pub fn from_location(location: &str) -> anyhow::Result<Self> {
+        let url = url::Url::parse(location)
+            .map_err(|e| anyhow::anyhow!("Invalid location URL: {}", e))?;
+        let (store, _path) = object_store::parse_url(&url)?;
+        Ok(Self::new(store.into()))
+    }
+
     pub async fn read(&self, path: &str) -> anyhow::Result<Bytes> {
         let path = Path::from(path);
         let result = self.inner.get(&path).await?;

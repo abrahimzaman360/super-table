@@ -3,8 +3,8 @@
 use pyo3::prelude::*;
 
 /// A data type for SuperTable columns.
-#[pyclass(from_py_object)]
-#[derive(Clone, Debug)]
+#[pyclass(eq, eq_int)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum PyType {
     Boolean,
     Int,
@@ -22,24 +22,24 @@ impl PyType {
     /// Converts to the Rust Type enum.
     pub fn to_rust_type(&self) -> supercore::Type {
         match self {
-            PyType::Boolean => supercore::Type::Boolean,
-            PyType::Int => supercore::Type::Int,
-            PyType::Long => supercore::Type::Long,
-            PyType::Float => supercore::Type::Float,
-            PyType::Double => supercore::Type::Double,
-            PyType::String => supercore::Type::String,
-            PyType::Binary => supercore::Type::Binary,
-            PyType::Date => supercore::Type::Date,
-            PyType::Timestamp => supercore::Type::Timestamp {
+            Self::Boolean => supercore::Type::Boolean,
+            Self::Int => supercore::Type::Int,
+            Self::Long => supercore::Type::Long,
+            Self::Float => supercore::Type::Float,
+            Self::Double => supercore::Type::Double,
+            Self::String => supercore::Type::String,
+            Self::Binary => supercore::Type::Binary,
+            Self::Date => supercore::Type::Date,
+            Self::Timestamp => supercore::Type::Timestamp {
                 with_timezone: false,
             },
-            PyType::Uuid => supercore::Type::Uuid,
+            Self::Uuid => supercore::Type::Uuid,
         }
     }
 }
 
 /// A field in a SuperTable schema.
-#[pyclass(from_py_object)]
+#[pyclass]
 #[derive(Clone)]
 pub struct PyField {
     #[pyo3(get)]
@@ -99,7 +99,7 @@ impl PyField {
 }
 
 /// A SuperTable schema defining the structure of records.
-#[pyclass(from_py_object)]
+#[pyclass]
 #[derive(Clone)]
 pub struct PySchema {
     #[pyo3(get)]

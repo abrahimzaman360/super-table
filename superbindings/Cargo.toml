@@ -1,18 +1,20 @@
 [package]
 name = "supertable-python"
-version = "0.1.1"
+version.workspace = true
 edition = "2024"
 description = "Python bindings for SuperTable"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/supertable-project/supertable"
+repository = "https://github.com/abrahimzaman360/super-table"
 
 [lib]
 name = "supertable"
 crate-type = ["cdylib"]
 
 [dependencies]
-# PyO3 for Python bindings - use exact version 0.24 which is stable
-pyo3 = { version = "0.28", features = ["extension-module"] }
+pyo3 = { version = "0.26", features = ["extension-module"] }
+pyo3-ffi = "=0.26.0"
 supercore = { package = "supertable-core", version = "0.1.0", path = "../supercore" }
 tokio = { version = "1.49.0", features = ["rt-multi-thread"] }
 serde_json = "1.0"
+arrow = { version = "57.2.0", features = ["pyarrow"] }
+anyhow = "1.0"

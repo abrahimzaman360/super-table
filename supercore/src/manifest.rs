@@ -481,6 +481,19 @@ pub struct DataFile {
     /// Sort order ID, if the file is sorted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sort_order_id: Option<i32>,
+
+    /// Key metadata for encryption.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_metadata: Option<Vec<u8>>,
+
+    /// Split offsets for the file.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub split_offsets: Option<Vec<i64>>,
+
+    /// Field IDs used for equality comparison in equality delete files.
+    /// This is required for content=EqualityDeletes and should be null otherwise.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub equality_ids: Option<Vec<i32>>,
 }
 
 impl DataFile {
@@ -506,6 +519,9 @@ impl DataFile {
             upper_bounds: HashMap::new(),
             statistics: HashMap::new(),
             sort_order_id: None,
+            key_metadata: None,
+            split_offsets: None,
+            equality_ids: None,
         }
     }
 
@@ -526,6 +542,30 @@ impl DataFile {
         self.column_sizes.insert(column_id, size);
         self.value_counts.insert(column_id, value_count);
         self.null_value_counts.insert(column_id, null_count);
+        self
+    }
+
+    /// Sets the content type (e.g., Data, PositionDeletes, EqualityDeletes).
+    pub fn with_content(mut self, content: FileContent) -> Self {
+        self.content = content;
+        self
+    }
+
+    /// Sets the equality IDs for equality delete files.
+    pub fn with_equality_ids(mut self, ids: Vec<i32>) -> Self {
+        self.equality_ids = Some(ids);
+        self
+    }
+
+    /// Sets the key metadata.
+    pub fn with_key_metadata(mut self, metadata: Vec<u8>) -> Self {
+        self.key_metadata = Some(metadata);
+        self
+    }
+
+    /// Sets the split offsets.
+    pub fn with_split_offsets(mut self, offsets: Vec<i64>) -> Self {
+        self.split_offsets = Some(offsets);
         self
     }
 }

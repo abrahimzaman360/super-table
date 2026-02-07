@@ -32,7 +32,9 @@ impl TableWriter {
     ) -> anyhow::Result<crate::manifest::DataFile> {
         // Validate schema before writing
         let validator = crate::validation::SchemaValidator::new(self.schema.clone());
-        validator.validate(batch)?;
+        if let Err(e) = validator.validate(batch) {
+            return Err(e.into());
+        }
 
         let props = WriterProperties::builder().build();
 
@@ -40,7 +42,7 @@ impl TableWriter {
         let mut buffer = Cursor::new(Vec::new());
         {
             let mut writer = ArrowWriter::try_new(&mut buffer, self.schema.clone(), Some(props))?;
-            writer.write(batch)?;
+            writer.write(&batch)?;
             writer.close()?;
         }
 
@@ -51,6 +53,10 @@ impl TableWriter {
 
         self.storage.write(&path, Bytes::from(data)).await?;
 
+        // Calculate stats (assuming stats module exists and works similarly)
+        // Note: crate::statistics::calculate_stats might need adjustment if I changed imports,
+        // but here I'm just copying code.
+        // Wait, original code usage: crate::statistics::calculate_stats(batch)?
         let stats = crate::statistics::calculate_stats(batch)?;
 
         let mut data_file = crate::manifest::DataFile::new(

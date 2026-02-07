@@ -24,23 +24,10 @@ else
 fi
 cd ..
 
-# 3. Node.js Bindings (NAPI-RS)
-echo "📦 Phase 3: Building Node.js bindings (dry run)..."
-cd supernode
-if command -v npm &> /dev/null; then
-    npm install
-    # npm run build # Skip full build in dry run if no napi-rs cli is present globally
-    echo "✅ Node.js setup passed."
-else
-    echo "⚠️  npm not found, skipping Node.js check."
-fi
-cd ..
-
 # 4. Final Validation
 echo "--------------------------------------------------"
 echo "✅ All checks completed!"
 echo "Next steps:"
 echo "1. cargo publish -p supertable-core"
 echo "2. maturin publish (from superbindings)"
-echo "3. npm publish (from supernode)"
 echo "--------------------------------------------------"

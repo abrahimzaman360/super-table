@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::sync::Arc;
 
+use arrow::array::Array;
 use arrow::datatypes::SchemaRef;
 use async_trait::async_trait;
 use datafusion::catalog::Session;
@@ -98,7 +99,8 @@ impl TableProvider for SuperTableProvider {
             .build();
 
         // 6. Base Scan Execution Plan
-        let base_exec = Arc::new(DataSourceExec::new(Arc::new(file_scan_config)));
+        let base_exec: Arc<dyn ExecutionPlan> =
+            Arc::new(DataSourceExec::new(Arc::new(file_scan_config)));
 
         // 7. Apply Merge-on-Read Equality Deletes
         // For this prototype, if we have Equality Deletes, we read them eagerly
@@ -116,86 +118,124 @@ impl TableProvider for SuperTableProvider {
         // Note: This is simplified. In production, we'd use an AntiJoinExec or similar.
         let storage = self.storage.clone();
         let reader = supercore::reader::TableReader::new(storage);
-        let mut ids_to_exclude = Vec::new();
 
-        // Assume ID field is field_id=1 for now, matching delete.rs assumption
+        // Map of Column ID -> List of values to exclude
+        use arrow::array::ArrayRef;
+        use std::collections::HashMap;
+        let mut exclusions: HashMap<i32, Vec<ArrayRef>> = HashMap::new();
         let schema = self.metadata.current_schema();
-        let id_col_idx = schema.fields.iter().position(|f| f.id == 1);
 
-        if let Some(_idx) = id_col_idx {
-            for del_file in equality_deletes {
-                let batches = reader
-                    .read_file(&del_file.file_path)
-                    .await
-                    .map_err(|e| datafusion::error::DataFusionError::External(e.into()))?;
-
-                for batch in batches {
-                    if batch.num_columns() > 0 {
-                        ids_to_exclude.push(batch.column(0).clone());
+        for del_file in equality_deletes {
+            // Use metadata if available, otherwise skip (or fallback to id=1 if we wanted backward compat)
+            if let Some(ids) = &del_file.equality_ids {
+                // For now, only support single-column equality deletes per file
+                if ids.len() == 1 {
+                    let col_id = ids[0];
+                    // Find column name
+                    if let Some(field) = schema.fields.iter().find(|f| f.id == col_id) {
+                        match reader.read_file(&del_file.file_path).await {
+                            Ok(batches) => {
+                                for batch in batches {
+                                    if let Some(col) = batch.column_by_name(&field.name) {
+                                        exclusions.entry(col_id).or_default().push(col.clone());
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                // Log error or fail? For now, we propagate
+                                return Err(datafusion::error::DataFusionError::External(e.into()));
+                            }
+                        }
                     }
                 }
             }
         }
 
-        if ids_to_exclude.is_empty() {
+        if exclusions.is_empty() {
             return Ok(base_exec);
         }
 
-        // Construct NOT IN filter
-        use datafusion::logical_expr::{col, lit};
-        let ids_refs: Vec<&dyn arrow::array::Array> =
-            ids_to_exclude.iter().map(|a| a.as_ref()).collect();
-        let combined_ids = arrow::compute::concat(&ids_refs)
-            .map_err(|e| datafusion::error::DataFusionError::ArrowError(Box::new(e), None))?;
+        // Apply filters
+        // If we have filters for multiple columns, we can chain them (AND logic).
+        // (id NOT IN (...)) AND (name NOT IN (...))
 
-        // Convert to ScalarValue list
-        let mut scalars = Vec::new();
-        // Assume Int64 for ID column for this prototype logic
-        if let Some(int64_ids) = combined_ids
-            .as_any()
-            .downcast_ref::<arrow::array::Int64Array>()
-        {
-            for i in 0..int64_ids.len() {
-                scalars.push(lit(int64_ids.value(i)));
-            }
-        } else {
-            // Fallback or skip if not Int64 for now
-            return Ok(base_exec);
-        }
-
-        // Create Filter: id NOT IN (ids...)
-        // We need the name of the ID column
-        let id_col_name = schema
-            .fields
-            .iter()
-            .find(|f| f.id == 1)
-            .unwrap()
-            .name
-            .clone();
-        let in_list = datafusion::logical_expr::expr::InList {
-            expr: Box::new(col(id_col_name)),
-            list: scalars,
-            negated: true,
-        };
-        let predicate = Expr::InList(in_list);
-
-        // Wrap in FilterExec
-        // We need physical plan filter, not logical Expr.
-        let df_schema = base_exec.schema();
+        let mut current_exec = base_exec;
+        let df_schema = current_exec.schema();
         let df_schema_converted =
             datafusion::common::DFSchema::try_from(df_schema.as_ref().clone())
                 .map_err(|e| datafusion::error::DataFusionError::External(e.into()))?;
+        let execution_props = datafusion::physical_expr::execution_props::ExecutionProps::new();
 
-        let physical_predicate = datafusion::physical_expr::create_physical_expr(
-            &predicate,
-            &df_schema_converted,
-            &datafusion::physical_expr::execution_props::ExecutionProps::new(),
-        )?;
+        use datafusion::logical_expr::{col, lit};
 
-        let filter_exec =
-            datafusion::physical_plan::filter::FilterExec::try_new(physical_predicate, base_exec)?;
+        for (col_id, arrays) in exclusions {
+            let field_name = schema
+                .fields
+                .iter()
+                .find(|f| f.id == col_id)
+                .unwrap()
+                .name
+                .clone();
 
-        Ok(Arc::new(filter_exec))
+            // Flatten recursion
+            let arrays_refs: Vec<&dyn arrow::array::Array> =
+                arrays.iter().map(|a| a.as_ref()).collect();
+            let combined = arrow::compute::concat(&arrays_refs)
+                .map_err(|e| datafusion::error::DataFusionError::ArrowError(Box::new(e), None))?;
+
+            // Create InList list from array elements
+            // Simple iteration for primitives.
+            // supporting Int64, Int32, Utf8 for now
+            let mut scalars = Vec::new();
+
+            if let Some(arr) = combined.as_any().downcast_ref::<arrow::array::Int64Array>() {
+                for i in 0..arr.len() {
+                    if !arr.is_null(i) {
+                        scalars.push(lit(arr.value(i)));
+                    }
+                }
+            } else if let Some(arr) = combined.as_any().downcast_ref::<arrow::array::Int32Array>() {
+                for i in 0..arr.len() {
+                    if !arr.is_null(i) {
+                        scalars.push(lit(arr.value(i)));
+                    }
+                }
+            } else if let Some(arr) = combined
+                .as_any()
+                .downcast_ref::<arrow::array::StringArray>()
+            {
+                for i in 0..arr.len() {
+                    if !arr.is_null(i) {
+                        scalars.push(lit(arr.value(i)));
+                    }
+                }
+            } else {
+                // Unsupported type for this prototype
+                continue;
+            }
+
+            if !scalars.is_empty() {
+                let in_list = datafusion::logical_expr::expr::InList {
+                    expr: Box::new(col(&field_name)),
+                    list: scalars,
+                    negated: true,
+                };
+                let predicate = Expr::InList(in_list);
+
+                let physical_predicate = datafusion::physical_expr::create_physical_expr(
+                    &predicate,
+                    &df_schema_converted,
+                    &execution_props,
+                )?;
+
+                current_exec = Arc::new(datafusion::physical_plan::filter::FilterExec::try_new(
+                    physical_predicate,
+                    current_exec,
+                )?);
+            }
+        }
+
+        Ok(current_exec)
     }
 
     fn supports_filters_pushdown(
